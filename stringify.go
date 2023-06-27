@@ -54,7 +54,7 @@ func isIgnore(v reflect.Value) bool {
 }
 
 // St stringify struct
-func (js *JSONStringify) St(s interface{}) {
+func (js *JSONStringify) St(s interface{}, embedded bool) {
 	sb := js.Sb
 	v := reflect.ValueOf(s)
 	if v.Kind() == reflect.Ptr {
@@ -62,7 +62,9 @@ func (js *JSONStringify) St(s interface{}) {
 	}
 	t := v.Type()
 	len := t.NumField()
-	sb.WriteRune('{')
+	if !embedded {
+		sb.WriteRune('{')
+	}
 	first := true
 	for i := 0; i < len; i++ {
 
@@ -71,6 +73,7 @@ func (js *JSONStringify) St(s interface{}) {
 		if field.PkgPath != "" {
 			continue
 		}
+
 		key := field.Name
 		value := v.FieldByIndex(field.Index)
 
@@ -108,17 +111,23 @@ func (js *JSONStringify) St(s interface{}) {
 				continue
 			}
 		}
-		// 如果非首个字段，则添加,
-		if !first {
-			sb.WriteRune(',')
+
+		// Ignore field name of embedded struct
+		if !field.Anonymous {
+			// 如果非首个字段，则添加,
+			if !first {
+				sb.WriteRune(',')
+			}
+			sb.WriteString(`"`)
+			sb.WriteString(key)
+			sb.WriteString(`":`)
 		}
-		sb.WriteString(`"`)
-		sb.WriteString(key)
-		sb.WriteString(`":`)
-		js.do(key, value.Interface())
+		js.do(key, value.Interface(), field.Anonymous)
 		first = false
 	}
-	sb.WriteRune('}')
+	if !embedded {
+		sb.WriteRune('}')
+	}
 }
 
 // Map stringify map
@@ -146,7 +155,7 @@ func (js *JSONStringify) Map(s interface{}) {
 		sb.WriteString(`"`)
 		sb.WriteString(key)
 		sb.WriteString(`":`)
-		js.do(key, value.Interface())
+		js.do(key, value.Interface(), false)
 	}
 	sb.WriteRune('}')
 }
@@ -174,12 +183,12 @@ func (js *JSONStringify) Array(s interface{}) {
 			sb.WriteRune(',')
 		}
 		first = false
-		js.do(strconv.Itoa(i), value.Interface())
+		js.do(strconv.Itoa(i), value.Interface(), false)
 	}
 	sb.WriteRune(']')
 }
 
-func (js *JSONStringify) do(key string, s interface{}) {
+func (js *JSONStringify) do(key string, s interface{}, embedded bool) {
 	sb := js.Sb
 	if js.Replacer != nil {
 		replace, value := js.Replacer(key, s)
@@ -194,7 +203,7 @@ func (js *JSONStringify) do(key string, s interface{}) {
 	}
 	switch v.Kind() {
 	case reflect.Struct:
-		js.St(s)
+		js.St(s, embedded)
 	case reflect.Map:
 		js.Map(s)
 	case reflect.Slice:
@@ -213,7 +222,7 @@ func (js *JSONStringify) do(key string, s interface{}) {
 
 // String json stringify
 func (js *JSONStringify) String(s interface{}) string {
-	js.do("", s)
+	js.do("", s, false)
 	return js.Sb.String()
 }
 

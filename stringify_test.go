@@ -14,20 +14,17 @@ type (
 		Information map[string]interface{} `json:"information,omitempty"`
 	}
 	Me struct {
-		ID          string                 `json:"id,omitempty"`
-		Account     string                 `json:"account,omitempty"`
-		Password    string                 `json:"password,omitempty"`
-		Secret      string                 `json:"-"`
-		Name        string                 `json:"name,omitempty"`
-		Age         int                    `json:"age,omitempty"`
-		VIP         bool                   `json:"vip,omitempty"`
-		Detail      string                 `json:"detail,omitempty"`
-		Information map[string]interface{} `json:"information,omitempty"`
-		Boss        Other                  `json:"boss,omitempty"`
-		Leader      *Other                 `json:"leader,omitempty"`
-		Workmates   []Other                `json:"workmates,omitempty"`
-		Friends     []*Other               `json:"friends,omitempty"`
-		Nil         []*Other               `json:"nil,omitempty"`
+		Other
+		ID        string   `json:"id,omitempty"`
+		Account   string   `json:"account,omitempty"`
+		Password  string   `json:"password,omitempty"`
+		Secret    string   `json:"-"`
+		Detail    string   `json:"detail,omitempty"`
+		Boss      Other    `json:"boss,omitempty"`
+		Leader    *Other   `json:"leader,omitempty"`
+		Workmates []Other  `json:"workmates,omitempty"`
+		Friends   []*Other `json:"friends,omitempty"`
+		Nil       []*Other `json:"nil,omitempty"`
 	}
 )
 
@@ -39,21 +36,23 @@ func getTestData() *Me {
 	peter := &Other{
 		Name: "peter\" don\"",
 	}
-	return &Me{
+	var me = Me{
+		Other: Other{
+			Name: "foo",
+			Age:  18,
+			VIP:  false,
+			Information: map[string]interface{}{
+				"fav":        "reading",
+				"weight":     70,
+				"male":       true,
+				"bestFriend": peter,
+			},
+		},
 		ID:       "",
 		Account:  "test",
 		Password: "pwd",
 		Secret:   "none",
-		Name:     "foo",
-		Age:      18,
-		VIP:      false,
 		Detail:   "GitHub is where people build software. More than 31 million people use GitHub to discover, fork, and contribute to over 100 million projects.",
-		Information: map[string]interface{}{
-			"fav":        "reading",
-			"weight":     70,
-			"male":       true,
-			"bestFriend": peter,
-		},
 		Boss: Other{
 			Name: "boss",
 		},
@@ -70,6 +69,10 @@ func getTestData() *Me {
 		},
 		Friends: friends,
 	}
+
+	me.Name = "james" // Testing container vs promoted name
+
+	return &me
 }
 
 func replacer(key string, value interface{}) (bool, string) {
@@ -93,7 +96,7 @@ func TestString(t *testing.T) {
 	checkList := []string{
 		`"account":"t***t"`,
 		`"password":"***"`,
-		`"name":"foo"`,
+		`"name":"james"`,
 		`"age":18`,
 		`"detail":"GitHub is where people build s..."`,
 		`"fav":"reading"`,
@@ -106,7 +109,7 @@ func TestString(t *testing.T) {
 		`{"name":"tas"}`,
 		`{"name":"tom"}`,
 	}
-	if len(str) != 312 {
+	if len(str) != 314 {
 		t.Fatalf("json stringify fail")
 	}
 	for _, v := range checkList {
