@@ -76,17 +76,18 @@ func (js *JSONStringify) St(s interface{}, embedded bool) {
 
 		key := field.Name
 		value := v.FieldByIndex(field.Index)
+		isPointer := value.Kind() == reflect.Ptr
 
-		// 如果是指针，获取真实值
-		if value.Kind() == reflect.Ptr {
+		// 如果是指针，获取真实值 (If it is a pointer, get the real value)
+		if isPointer {
 			value = value.Elem()
 		}
-		// 如果是需要忽略的，则忽略
+		// 如果是需要忽略的，则忽略 (If it needs to be ignored, then ignore)
 		if isIgnore(value) {
 			continue
 		}
 
-		// 从tag的配置中获取名字
+		// 从tag的配置中获取名字 (Get the name from the tag's configuration)
 		var tagName string
 		if js.TagName != "" {
 			tagName = js.TagName
@@ -94,7 +95,7 @@ func (js *JSONStringify) St(s interface{}, embedded bool) {
 			tagName = defaultTagName
 		}
 		tag := field.Tag.Get(tagName)
-		// 如果忽略则跳过
+		// 如果忽略则跳过 (skip if ignored)
 		if tag == "-" {
 			continue
 		}
@@ -105,16 +106,22 @@ func (js *JSONStringify) St(s interface{}, embedded bool) {
 		}
 
 		if strings.Contains(tag, "omitempty") {
-			zero := reflect.Zero(value.Type()).Interface()
-			current := value.Interface()
-			if reflect.DeepEqual(current, zero) {
-				continue
+			if isPointer {
+				if v.FieldByIndex(field.Index).IsNil() {
+					continue
+				}
+			} else {
+				zero := reflect.Zero(value.Type()).Interface()
+				current := value.Interface()
+				if reflect.DeepEqual(current, zero) {
+					continue
+				}
 			}
 		}
 
 		// Ignore field name of embedded struct
 		if !field.Anonymous {
-			// 如果非首个字段，则添加,
+			// 如果非首个字段，则添加, (If it is not the first field, add)
 			if !first {
 				sb.WriteRune(',')
 			}

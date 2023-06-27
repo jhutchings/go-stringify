@@ -11,6 +11,7 @@ type (
 		Name        string                 `json:"name,omitempty"`
 		Age         int                    `json:"age,omitempty"`
 		VIP         bool                   `json:"vip,omitempty"`
+		Funny       *bool                  `json:"funny,omitempty"`
 		Information map[string]interface{} `json:"information,omitempty"`
 	}
 	Me struct {
@@ -28,7 +29,17 @@ type (
 	}
 )
 
+const (
+	stringifyOutputLength = 341
+)
+
 func getTestData() *Me {
+	boolTrue := new(bool)
+	boolFalse := new(bool)
+
+	*boolFalse = false
+	*boolTrue = true
+
 	friends := make([]*Other, 2)
 	friends = append(friends, &Other{
 		Name: "tom",
@@ -38,9 +49,10 @@ func getTestData() *Me {
 	}
 	var me = Me{
 		Other: Other{
-			Name: "foo",
-			Age:  18,
-			VIP:  false,
+			Name:  "foo",
+			Age:   18,
+			VIP:   false,
+			Funny: boolFalse,
 			Information: map[string]interface{}{
 				"fav":        "reading",
 				"weight":     70,
@@ -64,7 +76,8 @@ func getTestData() *Me {
 				Name: "jack",
 			},
 			Other{
-				Name: "tas",
+				Name:  "tas",
+				Funny: boolTrue,
 			},
 		},
 		Friends: friends,
@@ -102,16 +115,19 @@ func TestString(t *testing.T) {
 		`"fav":"reading"`,
 		`"weight":70`,
 		`"male":true`,
+		`"funny":false`,
 		`"bestFriend":{"name":"peter\" don\""}`,
 		`"boss":{"name":"boss"}`,
 		`"leader":{"age":30}`,
 		`{"name":"jack"}`,
-		`{"name":"tas"}`,
+		`{"name":"tas","funny":true}`,
 		`{"name":"tom"}`,
 	}
-	if len(str) != 314 {
-		t.Fatalf("json stringify fail")
+	if len(str) != stringifyOutputLength {
+		t.Fatalf("json stringify fail, string is %d len and expect %d", len(str), stringifyOutputLength)
 	}
+
+	t.Logf("%s\n", str)
 	for _, v := range checkList {
 		if !strings.Contains(str, v) {
 			t.Fatalf("json stringify fail, it should contains %s", v)
